@@ -45,13 +45,31 @@ def initialize_graph(graphType: Literal['cycle', 'wheel', 'complete'], numNodes:
                     graph.add_edge(f"scientist-{i}", f"scientist-{j}")
     return graph
 
+class Results:
+    def __init__(self, graph: nx.Graph):
+        self.graph = graph
+        self.median_posteriors = []
+    def update_graph(self, graph: nx.Graph):
+        self.graph = graph
+    def add_posterior(self, num: float):
+        self.median_posteriors.append(num)
+        return self.median_posteriors
+    def get_median_posterior(self):
+        nodes = self.graph.nodes(data=True)
+        posteriors = []
+        for _, data in nodes:
+            posteriors.append(data['beliefProb'])
+        return statistics.median(posteriors)
+    
+    def plot(self):
+        return
+
 def run_simulation(graph: nx.Graph, timestep_func: Callable[[nx.Graph], nx.Graph], num_timesteps=1):
-    median_posteriors = []
+    results = Results(graph)
     for _ in range(num_timesteps):
         updated_graph = timestep_func(graph)
-
+        results.update_graph(updated_graph)
         # collect metrics
-        # display the current distribution
-        median_posterior = statistics.median(posteriors)
-        median_posteriors.append(median_posterior if median_posterior is not None else 0)
-        yield median_posteriors
+        # display the median posteriors plotted over time 
+        # display the current distribution of author beliefs
+        results.get_median_posterior()
