@@ -63,17 +63,33 @@ class Results:
         return statistics.median(posteriors)
     
     def plot(self):
-        # nx.draw(self.graph, with_labels=True)
+        # Define axis and subplots
+        fig, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize=(10, 15))
+
+        # Plot network visualization
+        nx.draw(self.graph, ax=ax1, with_labels=True)
+        ax1.set_title('Network Visualization')
+
         # print the histogram of all the belief probabilities
         belief_probs = [self.graph.nodes[node]['beliefProb'] * 100 for node in self.graph.nodes]
-        plt.bar(range(len(belief_probs)), belief_probs)
-        plt.xlabel('Scientist')
-        plt.ylabel('Belief Probability (%)')
-        plt.title('Current Node Belief Probability Distribution')
-        plt.xticks(range(len(belief_probs)))  # Set x-axis ticks to show a number for every bar
-        plt.ylim(min(belief_probs) - 1, max(belief_probs) + 1)  # Set y-axis limits based on data
+        ax2.bar(range(len(belief_probs)), belief_probs)
+        ax2.set_xlabel('Scientist')
+        ax2.set_ylabel('Belief Probability (%)')
+        ax2.set_title('Current Node Belief Probability Distribution')
+        ax2.set_xticks(range(len(belief_probs)))  # Set x-axis ticks to show a number for every bar
+        ax2.set_ylim(min(belief_probs) - 1, max(belief_probs) + 1)  # Set y-axis limits based on data
+
+        # Plot line chart of median posteriors
+        ax3.plot(self.median_posteriors)
+        ax3.set_xlabel('Time Step')
+        ax3.set_ylabel('Median Posteriors')
+        ax3.set_title('Median Posteriors Over Time')
+        ax3.grid(True)  # Add grid to the plot
+        ax3.tick_params(axis='x', labelrotation=45)  # Rotate x-axis labels for better readability
+
+        # Show plot
+        plt.tight_layout()
         plt.show()
-        return
 
 def run_simulation(graph: nx.Graph, timestep_func: Callable[[nx.Graph], nx.Graph], num_timesteps=1):
     results = Results(graph)
@@ -83,6 +99,6 @@ def run_simulation(graph: nx.Graph, timestep_func: Callable[[nx.Graph], nx.Graph
         # collect metrics
         # display the median posteriors plotted over time 
         # display the current distribution of author beliefs
-        results.get_median_posterior()
+        results.add_posterior(results.get_median_posterior())
 
     return results
