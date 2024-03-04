@@ -1,4 +1,5 @@
 import networkx as nx
+import matplotlib.pyplot as plt
 import random
 import statistics
 from typing import Literal, Callable
@@ -62,6 +63,16 @@ class Results:
         return statistics.median(posteriors)
     
     def plot(self):
+        # nx.draw(self.graph, with_labels=True)
+        # print the histogram of all the belief probabilities
+        belief_probs = [self.graph.nodes[node]['beliefProb'] * 100 for node in self.graph.nodes]
+        plt.bar(range(len(belief_probs)), belief_probs)
+        plt.xlabel('Scientist')
+        plt.ylabel('Belief Probability (%)')
+        plt.title('Current Node Belief Probability Distribution')
+        plt.xticks(range(len(belief_probs)))  # Set x-axis ticks to show a number for every bar
+        plt.ylim(min(belief_probs) - 1, max(belief_probs) + 1)  # Set y-axis limits based on data
+        plt.show()
         return
 
 def run_simulation(graph: nx.Graph, timestep_func: Callable[[nx.Graph], nx.Graph], num_timesteps=1):
@@ -73,3 +84,5 @@ def run_simulation(graph: nx.Graph, timestep_func: Callable[[nx.Graph], nx.Graph
         # display the median posteriors plotted over time 
         # display the current distribution of author beliefs
         results.get_median_posterior()
+
+    return results
