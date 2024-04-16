@@ -1,7 +1,6 @@
 import networkx as nx
 import matplotlib.pyplot as plt
 import random
-import statistics
 from typing import Literal, Callable
 
 def calculate_posterior(pH: float, pEH: float):
