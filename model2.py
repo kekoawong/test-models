@@ -37,20 +37,24 @@ class ZollmanBandit:
                 'b_alpha': random.randint(1, 4),
                 'b_beta': random.randint(1, 4),
             }
+            expectations = {
+                'a_expectation': initial_data['a_alpha'] / (initial_data['a_alpha'] + initial_data['a_beta']),
+                'b_expectation': initial_data['b_alpha'] / (initial_data['b_alpha'] + initial_data['b_beta'])
+            }
+            initial_data.update(expectations)
             self.graph.nodes[node].update(initial_data)
 
     def timestep(self):
         # run the experiments in all the nodes
         for _node, node_data in self.graph.nodes(data=True):
-            a_expectation = node_data['a_alpha'] / (node_data['a_alpha'] + node_data['a_beta'])
-            b_expectation = node_data['b_alpha'] / (node_data['b_alpha'] + node_data['b_beta'])
-            
             # agent pulls the "a" bandit arm
-            if a_expectation > b_expectation:
+            if node_data['a_expectation'] > node_data['b_expectation']:
                 node_data['a_alpha'] += int(np.random.binomial(self.num_trials, self.a_objective, size=None))
                 node_data['a_beta'] += self.num_trials
+                node_data['a_expectation'] = node_data['a_alpha'] / (node_data['a_alpha'] + node_data['a_beta'])
 
             # agent pulls the "b" bandit arm
             else:
                 node_data['b_alpha'] += int(np.random.binomial(self.num_trials, self.b_objective, size=None))
                 node_data['b_beta'] += self.num_trials
+                node_data['b_expectation'] = node_data['b_alpha'] / (node_data['b_alpha'] + node_data['b_beta'])
