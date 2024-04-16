@@ -12,6 +12,8 @@ class ZollmanBandit:
         # set the objective values of bandit arms that are unknown to agents
         self.a_objective = 0.49
         self.b_objective = 0.51
+        # number of trials per agent
+        self.num_trials = 1
         
         # NOTE: This graph variable will not be loaded into the 
         # modelpy interface since it is not a string or number
@@ -40,25 +42,15 @@ class ZollmanBandit:
     def timestep(self):
         # run the experiments in all the nodes
         for _node, node_data in self.graph.nodes(data=True):
+            a_expectation = node_data['a_alpha'] / (node_data['a_alpha'] + node_data['a_beta'])
+            b_expectation = node_data['b_alpha'] / (node_data['b_alpha'] + node_data['b_beta'])
+            
             # agent pulls the "a" bandit arm
-            if node_data['a_success_rate'] > node_data['b__learned_success_rate']:
-                # agent won't have any new evidence gathered for b
-                node_data['b_evidence'] = None
+            if a_expectation > b_expectation:
+                node_data['a_alpha'] += int(np.random.binomial(self.num_trials, self.a_objective, size=None))
+                node_data['a_beta'] += self.num_trials
 
             # agent pulls the "b" bandit arm
             else:
-                # agent collects evidence
-                node_data['b_evidence'] = int(np.random.binomial(1, self.objective_b, size=None))
-
-        # define function to update posterior
-        def calculate_posterior(prior_belief: float, num_evidence: float) -> float:
-            # Calculate likelihood, will be either the success rate
-            pEH_likelihood = (self.objective_b ** num_evidence) * ((1 - self.objective_b) ** (self.num_pulls - num_evidence))
-            
-            # Calculate normalization constant
-            pE_evidence = (pEH_likelihood * prior_belief) + ((1 - self.objective_b)**num_evidence) * (self.objective_b ** (self.num_pulls - num_evidence)) * (1 - prior_belief)
-
-            # Calculate posterior belief using Bayes' theorem
-            posterior = (pEH_likelihood * prior_belief) / pE_evidence
-            
-            return posterior
+                node_data['b_alpha'] += int(np.random.binomial(self.num_trials, self.b_objective, size=None))
+                node_data['b_beta'] += self.num_trials
