@@ -1,60 +1,60 @@
 import networkx as nx
-import matplotlib.pyplot as plt
+import numpy as np
 import random
-from typing import Literal, Callable
 
-def calculate_posterior(pH: float, pEH: float):
-    pE = pEH * pH + (1 - pEH) * (1 - pH)
-    return (pEH * pH) / pE
+# Inherit class from modelpy
+# https://docs.python.org/3/tutorial/classes.html#inheritance
+class ZollmanBandit:
+    def __init__(self):
+        # Define Parameters
+        self.num_nodes = 3
+        self.graph_type = 'complete' # complete, wheel, or cycle
+        # set the objective values of bandit arms that are unknown to agents
+        self.a_objective = 0.49
+        self.b_objective = 0.51
+        # number of trials per agent
+        self.num_trials = 1
+        
+        # NOTE: This graph variable will not be loaded into the 
+        # modelpy interface since it is not a string or number
+        self.graph: nx.Graph = None
 
-def initialize_graph(graphType: Literal['cycle', 'wheel', 'complete'], numNodes: int = 10):
-    graph = nx.Graph()
-    if graphType == 'cycle':
-        for index in range(numNodes):
-            initial_data = {'group': index % 4, 'beliefProb': random.random(), 'pEH': None}
-            graph.add_node(f"scientist-{index}", **initial_data)
-            if index > 0:
-                graph.add_edge(f"scientist-{index - 1}", f"scientist-{index}")
-        graph.add_edge(f"scientist-{numNodes - 1}", "scientist-0")
-    elif graphType == 'wheel':
-        for index in range(numNodes - 1):
-            initial_data = {'group': index % 4, 'beliefProb': random.random(), 'pEH': None}
-            graph.add_node(f"scientist-{index}", **initial_data)
-            if index > 0:
-                graph.add_edge(f"scientist-{index - 1}", f"scientist-{index}")
-        graph.add_edge(f"scientist-{numNodes - 2}", "scientist-0")
-        graph.add_node(f"scientist-{numNodes - 1}", group=1, beliefProb=random.random(), pEH=None)
-        for node in graph.nodes:
-            if node != f"scientist-{numNodes - 1}":
-                graph.add_edge(node, f"scientist-{numNodes - 1}")
-    else:
-        for index in range(numNodes):
-            initial_data = {'group': index % 4, 'beliefProb': random.random(), 'pEH': None}
-            graph.add_node(f"scientist-{index}", **initial_data)
-        for i in range(numNodes):
-            for j in range(i + 1, numNodes):
-                if i != j:
-                    graph.add_edge(f"scientist-{i}", f"scientist-{j}")
-    return graph
+    def initialize_graph(self):
+        if self.graph_type == 'complete':
+            self.graph = nx.complete_graph(self.num_nodes)
+        elif self.graph_type == 'cycle':
+            self.graph = nx.cycle_graph(self.num_nodes)
+        else:
+            self.graph = nx.wheel_graph(self.num_nodes)
+        
+        # Initialize all the node data for a bandit model
+        for node in self.graph.nodes():
+            initial_data = {
+                # bandit arm A alpha and beta initialization
+                'a_alpha': random.randint(1, 4),
+                'a_beta': random.randint(1, 4),
+                # bandit arm b learned parameters
+                'b_alpha': random.randint(1, 4),
+                'b_beta': random.randint(1, 4),
+            }
+            expectations = {
+                'a_expectation': initial_data['a_alpha'] / (initial_data['a_alpha'] + initial_data['a_beta']),
+                'b_expectation': initial_data['b_alpha'] / (initial_data['b_alpha'] + initial_data['b_beta'])
+            }
+            initial_data.update(expectations)
+            self.graph.nodes[node].update(initial_data)
 
-def run_experiment(worldState: Literal['new', 'old']):
-    return random.uniform(0.3, 0.8) if worldState == 'new' else random.uniform(0.2, 0.7)
+    def timestep(self):
+        # run the experiments in all the nodes
+        for _node, node_data in self.graph.nodes(data=True):
+            # agent pulls the "a" bandit arm
+            if node_data['a_expectation'] > node_data['b_expectation']:
+                node_data['a_alpha'] += int(np.random.binomial(self.num_trials, self.a_objective, size=None))
+                node_data['a_beta'] += self.num_trials
+                node_data['a_expectation'] = node_data['a_alpha'] / (node_data['a_alpha'] + node_data['a_beta'])
 
-def timestep(graph: nx.Graph):
-    # Get node data
-    world = 'new'
-    nodes = graph.nodes(data=True)
-    for node, data in nodes:
-        # run a new experiment if the scientist has a greater than 50% belief that the hypothesis is true
-        data['pEH'] = run_experiment(worldState=world) if data['beliefProb'] > 0.5 else None
-        data['beliefProb'] = calculate_posterior(data['beliefProb'], data['pEH']) if data['pEH'] is not None else data['beliefProb']
-
-    # update the scientists belief probability based on the observed evidence from their neighbors
-    for node, data in nodes:
-        neighbors = graph.neighbors(node)
-        for neighbor in neighbors:
-            neighbor_data = graph.nodes[neighbor]
-            if neighbor_data['pEH'] is not None:
-                data['beliefProb'] = calculate_posterior(data['beliefProb'], neighbor_data['pEH'])
-        data['group'] = sum(data['beliefProb'] > x for x in [0, 0.4, 0.6, 1])
-    return graph
+            # agent pulls the "b" bandit arm
+            else:
+                node_data['b_alpha'] += int(np.random.binomial(self.num_trials, self.b_objective, size=None))
+                node_data['b_beta'] += self.num_trials
+                node_data['b_expectation'] = node_data['b_alpha'] / (node_data['b_alpha'] + node_data['b_beta'])
