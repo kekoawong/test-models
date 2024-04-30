@@ -13,7 +13,7 @@ timesteps = 50
 for _ in range(timesteps):
     updated_graph = model.timestep()
     timestep_medians = {}
-    print("b belief at timestep", _, [data['b_success_rate'] for node,data in updated_graph.nodes(data=True)])
+    print("b belief at timestep", _, [data['b_expectation'] for node,data in updated_graph.nodes(data=True)])
     for key in numerical_keys:
         values = [data[key] for node, data in updated_graph.nodes(data=True) if key in data and data[key] is not None]
         new_median = statistics.median(values) if values else 0
