@@ -43,6 +43,8 @@ class ZollmanBandit:
             }
             initial_data.update(expectations)
             self.graph.nodes[node].update(initial_data)
+            
+        return self.graph
 
     def timestep(self):
         # run the experiments in all the nodes
@@ -58,3 +60,5 @@ class ZollmanBandit:
                 node_data['b_alpha'] += int(np.random.binomial(self.num_trials, self.b_objective, size=None))
                 node_data['b_beta'] += self.num_trials
                 node_data['b_expectation'] = node_data['b_alpha'] / (node_data['b_alpha'] + node_data['b_beta'])
+
+        return self.graph

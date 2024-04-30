@@ -1,17 +1,17 @@
-from model2 import timestep, initialize_graph
+from model import ZollmanBandit
 import statistics
 import networkx as nx
 
 # Get all keys that have numerical values in the graph
-initial = initialize_graph("cycle", 10)
+model = ZollmanBandit()
+initial = model.initialize_graph()
 median_vals = []
 numerical_keys = {key for node, data in initial.nodes(data=True) for key in data if isinstance(data[key], (int, float, complex))}
 print("initial graph data", initial.nodes(data=True))
 print("/n")
 timesteps = 50
-# print("b belief at before", [data['b_success_rate'] for node,data in initial.nodes(data=True)])
 for _ in range(timesteps):
-    updated_graph = timestep(initial)
+    updated_graph = model.timestep()
     timestep_medians = {}
     print("b belief at timestep", _, [data['b_success_rate'] for node,data in updated_graph.nodes(data=True)])
     for key in numerical_keys:
